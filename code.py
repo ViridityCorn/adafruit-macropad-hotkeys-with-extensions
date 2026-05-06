@@ -14,23 +14,26 @@ from screensaver import get_screensaver
 try:
     import config
 except ImportError:
+
     class config:  # sensible defaults when config.py is absent
         SLEEP_ENABLED = True
         SLEEP_TIMEOUT = 60
         SCREENSAVER = "bounce"
+
 
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
 
 APPS_FOLDER = "/apps"
-APPS_PER_PAGE = 12          # matches the 12 physical keys
-MAX_LABEL_CHARS = 6         # characters visible per home-screen slot
-HEADER_HEIGHT = 12          # pixels reserved for the top title bar
+APPS_PER_PAGE = 12  # matches the 12 physical keys
+MAX_LABEL_CHARS = 6  # characters visible per home-screen slot
+HEADER_HEIGHT = 12  # pixels reserved for the top title bar
 
 # ---------------------------------------------------------------------------
 # App wrappers
 # ---------------------------------------------------------------------------
+
 
 class MacroApp:
     """Wraps an app dict that drives hotkeys via a 'macros' list."""
@@ -79,6 +82,7 @@ class SubApp:
 # Home screen
 # ---------------------------------------------------------------------------
 
+
 class HomeScreen:
     """Renders a paginated 3×4 grid of app names on the OLED.
 
@@ -101,7 +105,7 @@ class HomeScreen:
                 terminalio.FONT,
                 text="Macropad OS",
                 color=0x000000,
-                anchored_position=(mp.display.width // 2, -2),
+                anchored_position=(mp.display.width // 2, -1),
                 anchor_point=(0.5, 0.0),
             )
         )
@@ -129,7 +133,7 @@ class HomeScreen:
                 terminalio.FONT,
                 text="",
                 color=0x000000,
-                anchored_position=(mp.display.width - 2, -2),
+                anchored_position=(mp.display.width - 2, -1),
                 anchor_point=(1.0, 0.0),
             )
         )
@@ -170,6 +174,7 @@ class HomeScreen:
 # ---------------------------------------------------------------------------
 # The shared display group used by MacroApp (key labels + title bar)
 # ---------------------------------------------------------------------------
+
 
 def _build_macro_group(macropad):
     group = displayio.Group()
@@ -215,6 +220,7 @@ def _build_macro_group(macropad):
 # App loading
 # ---------------------------------------------------------------------------
 
+
 def load_apps(folder):
     apps = []
 
@@ -227,8 +233,7 @@ def load_apps(folder):
         except OSError:
             return apps
         names = [
-            f[:-3] for f in files
-            if f.endswith(".py") and not f.startswith(("._", "_"))
+            f[:-3] for f in files if f.endswith(".py") and not f.startswith(("._", "_"))
         ]
 
     for name in names:
@@ -250,6 +255,7 @@ def load_apps(folder):
 # ---------------------------------------------------------------------------
 # Sequence execution (for MacroApp keys)
 # ---------------------------------------------------------------------------
+
 
 def _execute_sequence(macropad, sequence, pressed):
     if pressed:
@@ -304,7 +310,7 @@ def _execute_sequence(macropad, sequence, pressed):
 
 
 # ---------------------------------------------------------------------------
-# Initialisation
+# Initialization
 # ---------------------------------------------------------------------------
 
 macropad = MacroPad()
@@ -318,9 +324,16 @@ apps = load_apps(APPS_FOLDER)
 if not apps:
     err_group = displayio.Group()
     err_group.append(
-        label.Label(terminalio.FONT, text="No apps found\nin /apps", color=0xFF0000,
-                    anchored_position=(macropad.display.width // 2, macropad.display.height // 2),
-                    anchor_point=(0.5, 0.5))
+        label.Label(
+            terminalio.FONT,
+            text="No apps found\nin /apps",
+            color=0xFF0000,
+            anchored_position=(
+                macropad.display.width // 2,
+                macropad.display.height // 2,
+            ),
+            anchor_point=(0.5, 0.5),
+        )
     )
     macropad.display.root_group = err_group
     macropad.display.refresh()

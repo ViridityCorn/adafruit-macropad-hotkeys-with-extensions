@@ -19,7 +19,7 @@ SLEEP_TIMEOUT = 60
 #   "lines"  — two horizontal lines drift downward at different speeds
 #   "rain"   — sparse falling pixel drops (minimal matrix rain)
 #   "random" — pick a random animated screensaver each time the screen sleeps
-SCREENSAVER = "rain"
+SCREENSAVER = "black"
 
 # ---------------------------------------------------------------------------
 # Exit button
@@ -39,12 +39,4 @@ EXIT_KEY = None
 # List of app module names (without .py) to load, in the order they appear
 # on the home screen. If omitted or set to None, all .py files in the apps/
 # folder are loaded alphabetically.
-APPS = [
-    "media",
-    "numpad",
-    "pomodoro",
-    "github",
-    "graphite",
-    "fidget",
-    "web"
-]
+APPS = ["media", "numpad", "pomodoro", "github", "graphite", "fidget", "web"]

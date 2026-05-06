@@ -15,27 +15,34 @@ import terminalio
 from adafruit_display_shapes.rect import Rect
 from adafruit_display_text import label
 from screensaver import SleepManager
+
 try:
     import config as _cfg
 except ImportError:
+
     class _cfg:
         SLEEP_ENABLED = True
         SLEEP_TIMEOUT = 60
-        SCREENSAVER   = "bounce"
+        SCREENSAVER = "bounce"
+
 
 # ---------------------------------------------------------------------------
 # Session sequence (edit durations in seconds)
 # ---------------------------------------------------------------------------
 
-WORK_SESSION  = {"duration": 25 * 60, "title": "FOCUS",       "focus": True}
-SHORT_BREAK   = {"duration":  5 * 60, "title": "SHORT BREAK",  "focus": False}
-LONG_BREAK    = {"duration": 15 * 60, "title": "LONG BREAK",   "focus": False}
+WORK_SESSION = {"duration": 25 * 60, "title": "FOCUS", "focus": True}
+SHORT_BREAK = {"duration": 5 * 60, "title": "SHORT BREAK", "focus": False}
+LONG_BREAK = {"duration": 15 * 60, "title": "LONG BREAK", "focus": False}
 
 SEQUENCE = [
-    WORK_SESSION, SHORT_BREAK,
-    WORK_SESSION, SHORT_BREAK,
-    WORK_SESSION, SHORT_BREAK,
-    WORK_SESSION, LONG_BREAK,
+    WORK_SESSION,
+    SHORT_BREAK,
+    WORK_SESSION,
+    SHORT_BREAK,
+    WORK_SESSION,
+    SHORT_BREAK,
+    WORK_SESSION,
+    LONG_BREAK,
 ]
 
 # ---------------------------------------------------------------------------
@@ -43,19 +50,20 @@ SEQUENCE = [
 # ---------------------------------------------------------------------------
 
 state = {
-    "boot_at":        None,
-    "start_time":     None,
-    "paused_at":      0,
-    "offset":         0,
-    "session_count":  0,
-    "session_ended":  False,
-    "total_focused":  0,
+    "boot_at": None,
+    "start_time": None,
+    "paused_at": 0,
+    "offset": 0,
+    "session_count": 0,
+    "session_ended": False,
+    "total_focused": 0,
     "total_sessions": 0,
 }
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _fmt_hm(seconds):
     m, _ = divmod(seconds, 60)
@@ -67,7 +75,7 @@ def _light_pulse(macropad):
     for i in range(8):
         macropad.pixels.fill((0, 0, 0))
         row = (i % 4) * 3
-        macropad.pixels[row]     = (255, 255, 255)
+        macropad.pixels[row] = (255, 255, 255)
         macropad.pixels[row + 1] = (255, 255, 255)
         macropad.pixels[row + 2] = (255, 255, 255)
         macropad.pixels.show()
@@ -83,30 +91,49 @@ def _build_display(macropad):
     group = displayio.Group()
     group.append(Rect(0, 0, macropad.display.width, 12, fill=0xFFFFFF))
     group.append(
-        label.Label(terminalio.FONT, text="Pomodoro", color=0x000000,
-                    anchored_position=(macropad.display.width // 2, -2),
-                    anchor_point=(0.5, 0.0))
+        label.Label(
+            terminalio.FONT,
+            text="Pomodoro",
+            color=0x000000,
+            anchored_position=(macropad.display.width // 2, -1),
+            anchor_point=(0.5, 0.0),
+        )
     )
     # Timer / stat text (large)
     group.append(
-        label.Label(terminalio.FONT, text="Press 1 to start", color=0xFFFFFF,
-                    line_spacing=0.8,
-                    anchored_position=(macropad.display.width / 2,
-                                       macropad.display.height / 2),
-                    anchor_point=(0.5, 0.5), scale=1)
+        label.Label(
+            terminalio.FONT,
+            text="Press 1 to start",
+            color=0xFFFFFF,
+            line_spacing=0.8,
+            anchored_position=(macropad.display.width / 2, macropad.display.height / 2),
+            anchor_point=(0.5, 0.5),
+            scale=1,
+        )
     )
     # Sub-label (session name or next-session hint)
     group.append(
-        label.Label(terminalio.FONT, text="", color=0xAAAAAA,
-                    anchored_position=(macropad.display.width / 2,
-                                       macropad.display.height - 4),
-                    anchor_point=(0.5, 1.0))
+        label.Label(
+            terminalio.FONT,
+            text="",
+            color=0xAAAAAA,
+            anchored_position=(macropad.display.width / 2, macropad.display.height - 4),
+            anchor_point=(0.5, 1.0),
+        )
     )
     return group  # group[2] = main text, group[3] = sub text
+
+
+def _wake_up_display(macropad, group):
+    macropad.display.root_group = group
+    macropad.display.refresh()
+    _set_pixels(macropad)
+
 
 # ---------------------------------------------------------------------------
 # Entry point called by Macropad OS
 # ---------------------------------------------------------------------------
+
 
 def _set_pixels(macropad):
     macropad.pixels.fill((0, 0, 0))
@@ -132,16 +159,15 @@ def run(macropad):
         # Sleep/wake tick — returns True on the frame the screen wakes up.
         woke = sleep.tick(macropad)
         if woke:
-            macropad.display.root_group = group
-            macropad.display.refresh()
-            _set_pixels(macropad)
+            _wake_up_display(macropad, group)
             continue  # skip input handling on the wake frame
-        if sleep.sleeping:
-            continue
+        # if sleep.sleeping:
+        #     continue
 
         # Encoder press → exit to home
         macropad.encoder_switch_debounced.update()
         if macropad.encoder_switch_debounced.pressed:
+            sleep.notify_input()
             sleep.force_stop(macropad)
             return
 
@@ -152,22 +178,22 @@ def run(macropad):
             k = event.key_number
 
             if k == 0:  # Start / restart
-                state["start_time"]    = time.time()
-                state["paused_at"]     = 0
-                state["offset"]        = 0
+                state["start_time"] = time.time()
+                state["paused_at"] = 0
+                state["offset"] = 0
                 state["session_ended"] = False
                 group[2].scale = 2
 
             elif k == 1:  # Pause / resume
                 if state["paused_at"] > 0:
-                    state["offset"]    += state["paused_at"] - state["start_time"]
+                    state["offset"] += state["paused_at"] - state["start_time"]
                     state["start_time"] = time.time()
-                    state["paused_at"]  = 0
+                    state["paused_at"] = 0
                 else:
                     state["paused_at"] = time.time()
 
             elif k == 2:  # Skip session
-                state["session_ended"]  = True
+                state["session_ended"] = True
                 state["session_count"] += 1
                 _light_pulse(macropad)
 
@@ -181,10 +207,12 @@ def run(macropad):
             fh, fm = _fmt_hm(state["total_focused"])
             elapsed = time.time() - state["boot_at"] - state["total_focused"]
             sh, sm = _fmt_hm(elapsed)
-            group[2].scale = 1
-            group[2].text  = f"{fh}h{fm}m focus ({state['total_sessions']})"
-            group[3].text  = f"slack {sh}h{sm}m | next: {SEQUENCE[idx]['title'][:5]}"
-            macropad.display.refresh()
+
+            if not sleep.sleeping:
+                group[2].scale = 1
+                group[2].text = f"{fh}h{fm}m focus ({state['total_sessions']})"
+                group[3].text = f"next: {SEQUENCE[idx]['title'][:5]}"
+                macropad.display.refresh()
             continue
 
         # Running / paused countdown
@@ -196,26 +224,35 @@ def run(macropad):
         diff = SEQUENCE[idx]["duration"] - diff
 
         if diff <= 0:
+            if sleep.sleeping:
+                sleep.force_stop(macropad)
+                _wake_up_display(macropad, group)
             macropad.play_tone(440, 0.3)
             macropad.play_tone(550, 0.3)
-            state["session_ended"]  = True
+            state["session_ended"] = True
             state["session_count"] += 1
             if SEQUENCE[idx]["focus"]:
-                state["total_focused"]  += WORK_SESSION["duration"]
+                state["total_focused"] += WORK_SESSION["duration"]
                 state["total_sessions"] += 1
             _light_pulse(macropad)
             _light_pulse(macropad)
             diff = 0
+            sleep.notify_input()
 
-        mins = int(diff) // 60
-        secs = int(diff) % 60
-        group[2].scale = 2
-        group[2].text  = f"{mins:02d}:{secs:02d}"
-        group[3].text  = SEQUENCE[idx]["title"]
-        macropad.display.refresh()
+        if not sleep.sleeping:
+            mins = int(diff) // 60
+            secs = int(diff) % 60
+            group[2].scale = 2
+            group[2].text = f"{mins:02d}:{secs:02d}"
+
+            if state["paused_at"] > 0:
+                group[3].text = "PAUSED (" + SEQUENCE[idx]["title"] + ")"
+            else:
+                group[3].text = SEQUENCE[idx]["title"]
+            macropad.display.refresh()
 
 
 app = {
     "name": "Pomodoro",
-    "run":  run,
+    "run": run,
 }

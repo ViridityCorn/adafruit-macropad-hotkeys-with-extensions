@@ -10,6 +10,7 @@ import displayio
 # NeoPixel row-sweep helper (shared by all screensavers)
 # ---------------------------------------------------------------------------
 
+
 class _PixelSweep:
     """Smooth white line that sweeps down the 4 keypad rows with soft falloff.
 
@@ -19,41 +20,41 @@ class _PixelSweep:
     before repeating.
     """
 
-    _PEAK_V     = 22    # brightest channel value (keep subtle)
-    _SIGMA      = 1.2   # falloff width in rows; controls how wide the glow is
-    _SPEED      = 9.0   # rows per second
-    _POS_START  = -1.5  # start well before row 0 is visible
-    _POS_END    =  4.5  # end well after row 3 fades out
-    _PAUSE_S    =  2.0  # dark gap between sweeps
+    _PEAK_V = 22  # brightest channel value (keep subtle)
+    _SIGMA = 1.2  # falloff width in rows; controls how wide the glow is
+    _SPEED = 9.0  # rows per second
+    _POS_START = -1.5  # start well before row 0 is visible
+    _POS_END = 4.5  # end well after row 3 fades out
+    _PAUSE_S = 2.0  # dark gap between sweeps
 
     def __init__(self):
-        self._pos         = self._POS_START
+        self._pos = self._POS_START
         self._last_update = 0.0
-        self._pausing     = False
+        self._pausing = False
         self._pause_until = 0.0
 
     def start(self, macropad):
-        self._pos         = self._POS_START
-        self._pausing     = False
+        self._pos = self._POS_START
+        self._pausing = False
         self._last_update = time.monotonic()
         macropad.pixels.fill(0)
         macropad.pixels.show()
 
     def tick(self, macropad):
         now = time.monotonic()
-        dt  = now - self._last_update
+        dt = now - self._last_update
         self._last_update = now
 
         if self._pausing:
             if now >= self._pause_until:
                 self._pausing = False
-                self._pos     = self._POS_START
+                self._pos = self._POS_START
             return
 
         self._pos += dt * self._SPEED
 
         if self._pos >= self._POS_END:
-            self._pausing     = True
+            self._pausing = True
             self._pause_until = now + self._PAUSE_S
             macropad.pixels.fill(0)
             macropad.pixels.show()
@@ -63,7 +64,7 @@ class _PixelSweep:
 
     def _render(self, macropad):
         for key in range(12):
-            row  = key // 3
+            row = key // 3
             dist = abs(row - self._pos)
             weight = max(0.0, 1.0 - dist / self._SIGMA)
             v = int(self._PEAK_V * weight)
@@ -78,6 +79,7 @@ class _PixelSweep:
 # ---------------------------------------------------------------------------
 # BlackScreensaver
 # ---------------------------------------------------------------------------
+
 
 class BlackScreensaver:
     """Turn the display off completely — best burn-in prevention."""
@@ -99,6 +101,7 @@ class BlackScreensaver:
 # Shared helper: a full-screen black bitmap for animated screensavers
 # ---------------------------------------------------------------------------
 
+
 def _make_canvas(macropad):
     """Return (group, bitmap, palette) covering the full display."""
     w = macropad.display.width
@@ -116,6 +119,7 @@ def _make_canvas(macropad):
 # ---------------------------------------------------------------------------
 # BounceScreensaver
 # ---------------------------------------------------------------------------
+
 
 class BounceScreensaver:
     """A single pixel bouncing around the screen.
@@ -145,12 +149,12 @@ class BounceScreensaver:
         self._bmp[self._x, self._y] = 1
         self._last_tick = time.monotonic()
 
-        self._sweep = _PixelSweep()
-        self._sweep.start(macropad)
+        # self._sweep = _PixelSweep()
+        # self._sweep.start(macropad)
         macropad.display.root_group = self._group
 
     def tick(self, macropad):
-        self._sweep.tick(macropad)
+        # self._sweep.tick(macropad)
 
         now = time.monotonic()
         if now - self._last_tick < self._TICK_S:
@@ -179,12 +183,14 @@ class BounceScreensaver:
         self._bmp[self._x, self._y] = 1
 
     def stop(self, macropad):
-        self._sweep.stop(macropad)
+        # self._sweep.stop(macropad)
+        pass
 
 
 # ---------------------------------------------------------------------------
 # StarsScreensaver
 # ---------------------------------------------------------------------------
+
 
 class StarsScreensaver:
     """Sparse pixels that slowly flicker on and off like distant stars.
@@ -208,7 +214,9 @@ class StarsScreensaver:
             x = random.randrange(w)
             y = random.randrange(h)
             on = random.choice([True, False])
-            interval = self._MIN_INTERVAL + random.random() * (self._MAX_INTERVAL - self._MIN_INTERVAL)
+            interval = self._MIN_INTERVAL + random.random() * (
+                self._MAX_INTERVAL - self._MIN_INTERVAL
+            )
             next_flip = now + interval
             self._stars.append([x, y, on, interval, next_flip])
             self._bmp[x, y] = 1 if on else 0
@@ -225,7 +233,9 @@ class StarsScreensaver:
             if now >= star[4]:
                 star[2] = not star[2]
                 self._bmp[star[0], star[1]] = 1 if star[2] else 0
-                interval = self._MIN_INTERVAL + random.random() * (self._MAX_INTERVAL - self._MIN_INTERVAL)
+                interval = self._MIN_INTERVAL + random.random() * (
+                    self._MAX_INTERVAL - self._MIN_INTERVAL
+                )
                 star[3] = interval
                 star[4] = now + interval
 
@@ -236,6 +246,7 @@ class StarsScreensaver:
 # ---------------------------------------------------------------------------
 # LinesScreensaver
 # ---------------------------------------------------------------------------
+
 
 class LinesScreensaver:
     """Two thin horizontal lines drifting slowly downward at different speeds.
@@ -299,6 +310,7 @@ class LinesScreensaver:
 # ---------------------------------------------------------------------------
 # RainScreensaver
 # ---------------------------------------------------------------------------
+
 
 class RainScreensaver:
     """Sparse falling pixel drops, like a minimal matrix rain.
@@ -394,6 +406,7 @@ def get_screensaver(name):
 # SleepManager — for use inside SubApp run() loops
 # ---------------------------------------------------------------------------
 
+
 class SleepManager:
     """Handles sleep/wake inside a SubApp's own run() loop.
 
@@ -425,10 +438,10 @@ class SleepManager:
     """
 
     def __init__(self, cfg):
-        self._cfg          = cfg
-        self._last_input   = time.monotonic()
-        self._screensaver  = None
-        self._sleeping     = False
+        self._cfg = cfg
+        self._last_input = time.monotonic()
+        self._screensaver = None
+        self._sleeping = False
         self._last_enc_pos = None
 
     @property
@@ -458,9 +471,9 @@ class SleepManager:
         # --- Trigger sleep ---
         if not self._sleeping and self._cfg.SLEEP_ENABLED:
             if now - self._last_input > self._cfg.SLEEP_TIMEOUT:
-                self._sleeping     = True
+                self._sleeping = True
                 self._last_enc_pos = macropad.encoder
-                self._screensaver  = get_screensaver(self._cfg.SCREENSAVER)
+                self._screensaver = get_screensaver(self._cfg.SCREENSAVER)
                 self._screensaver.start(macropad)
 
         if not self._sleeping:
@@ -471,16 +484,16 @@ class SleepManager:
         macropad.display.refresh()
 
         macropad.encoder_switch_debounced.update()
-        enc_pos  = macropad.encoder
+        enc_pos = macropad.encoder
         wake_key = macropad.keys.events.get()
         wake_enc = enc_pos != self._last_enc_pos
-        wake_sw  = macropad.encoder_switch_debounced.pressed
+        wake_sw = macropad.encoder_switch_debounced.pressed
 
         if wake_key or wake_enc or wake_sw:
             self._screensaver.stop(macropad)
-            self._screensaver  = None
-            self._sleeping     = False
-            self._last_input   = time.monotonic()
+            self._screensaver = None
+            self._sleeping = False
+            self._last_input = time.monotonic()
             self._last_enc_pos = macropad.encoder
             # Drain remaining key events so the wake input isn't acted on.
             while macropad.keys.events.get():
@@ -494,4 +507,4 @@ class SleepManager:
         if self._sleeping and self._screensaver:
             self._screensaver.stop(macropad)
             self._screensaver = None
-            self._sleeping    = False
+            self._sleeping = False
